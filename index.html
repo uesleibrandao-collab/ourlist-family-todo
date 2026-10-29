@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OurList — Family Todo</title>
+<style>
+  :root{
+    --bg:#f7f6f3; --card:#ffffff; --ink:#22262b; --muted:#9aa0a6;
+    --accent:#ff6b5e; --accent2:#4f7cff; --green:#34b37e;
+    --shadow:0 6px 24px rgba(30,30,60,.08); --radius:16px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:"Segoe UI",system-ui,-apple-system,sans-serif;
+    background:linear-gradient(180deg,#fdfcfb 0%,var(--bg) 100%);
+    color:var(--ink); min-height:100vh;
+  }
+  .wrap{max-width:640px; margin:0 auto; padding:32px 20px 80px;}
+
+  header{display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;}
+  .logo{font-size:28px; font-weight:800; letter-spacing:-.5px;}
+  .logo span{color:var(--accent);}
+  .share-btn{
+    background:var(--ink); color:#fff; border:none; padding:10px 18px;
+    border-radius:999px; font-size:14px; font-weight:600; cursor:pointer;
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .share-btn:hover{transform:translateY(-2px); box-shadow:0 8px 20px rgba(0,0,0,.15);}
+
+  .members{display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap;}
+  .chip{
+    display:flex; align-items:center; gap:8px; padding:6px 14px 6px 6px;
+    border-radius:999px; background:var(--card); border:2px solid transparent;
+    cursor:pointer; font-size:14px; font-weight:600; box-shadow:var(--shadow);
+    transition:border-color .15s ease, transform .15s ease; user-select:none;
+  }
+  .chip:hover{transform:translateY(-2px);}
+  .chip.active{border-color:var(--c,#999);}
+  .avatar{
+    width:28px; height:28px; border-radius:50%; display:grid; place-items:center;
+    color:#fff; font-size:12px; font-weight:700; background:var(--c,#999);
+  }
+
+  .card{
+    background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow);
+    padding:16px; margin-bottom:20px;
+  }
+  .add-row{display:flex; gap:8px;}
+  #taskInput{
+    flex:1; border:none; outline:none; font-size:16px; padding:10px 12px;
+    border-radius:10px; background:#f2f1ee;
+  }
+  .add-btn{
+    background:var(--accent); color:#fff; border:none; width:44px; height:44px;
+    border-radius:12px; font-size:22px; cursor:pointer; transition:transform .15s ease;
+  }
+  .add-btn:hover{transform:scale(1.08);}
+  .meta-row{display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; align-items:center;}
+  select,.date{
+    border:none; background:#f2f1ee; padding:8px 10px; border-radius:10px;
+    font-size:13px; color:var(--ink); outline:none; cursor:pointer; font-family:inherit;
+  }
+  .prio{display:flex; gap:4px;}
+  .prio button{
+    border:none; background:#f2f1ee; padding:8px 12px; border-radius:10px;
+    font-size:13px; cursor:pointer; font-weight:600; color:var(--muted); transition:all .15s;
+  }
+  .prio button.sel{background:var(--ink); color:#fff;}
+
+  .tabs{display:flex; gap:6px; margin-bottom:14px;}
+  .tab{
+    border:none; background:transparent; padding:8px 16px; border-radius:999px;
+    font-size:14px; font-weight:600; color:var(--muted); cursor:pointer; transition:all .15s;
+  }
+  .tab.sel{background:var(--ink); color:#fff;}
+
+  ul{list-style:none;}
+  li{
+    display:flex; align-items:center; gap:12px; padding:14px 10px;
+    border-bottom:1px solid #f0efec; animation:pop .25s ease;
+  }
+  li:last-child{border-bottom:none;}
+  @keyframes pop{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;}}
+  .check{
+    width:24px; height:24px; min-width:24px; border-radius:50%;
+    border:2px solid #d8d6d1; background:transparent; cursor:pointer;
+    display:grid; place-items:center; transition:all .2s; font-size:13px; color:#fff;
+  }
+  li.done .check{background:var(--green); border-color:var(--green);}
+  li.done .txt{text-decoration:line-through; color:var(--muted);}
+  .txt{flex:1; font-size:16px;}
+  .badge{
+    font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px; color:#fff;
+    background:var(--c,#999); white-space:nowrap;
+  }
+  .due{font-size:12px; color:var(--muted); white-space:nowrap;}
+  .due.over{color:var(--accent); font-weight:700;}
+  .dot{width:8px; height:8px; border-radius:50%; min-width:8px;}
+  .del{border:none; background:none; color:#d8d6d1; cursor:pointer; font-size:16px; visibility:hidden;}
+  li:hover .del{visibility:visible;}
+  .del:hover{color:var(--accent);}
+  .empty{text-align:center; color:var(--muted); padding:40px 0; font-size:15px;}
+
+  .footer{display:flex; justify-content:space-between; align-items:center; margin-top:14px; font-size:13px; color:var(--muted);}
+  .footer button{border:none; background:none; color:var(--muted); cursor:pointer; font-size:13px; text-decoration:underline;}
+  .footer button:hover{color:var(--accent);}
+
+  #toast{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(80px);
+    background:var(--ink); color:#fff; padding:12px 22px; border-radius:999px;
+    font-size:14px; transition:transform .3s ease; z-index:99;
+  }
+  #toast.show{transform:translateX(-50%) translateY(0);}
+  @media (max-width:480px){ .wrap{padding:20px 14px 60px;} .logo{font-size:23px;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">Our<span>List</span> 🏡</div>
+    <button class="share-btn" id="shareBtn">🔗 Share</button>
+  </header>
+
+  <div class="members" id="members"></div>
+
+  <div class="card">
+    <div class="add-row">
+      <input id="taskInput" placeholder="Add a task for the family…" maxlength="120">
+      <button class="add-btn" id="addBtn">＋</button>
+    </div>
+    <div class="meta-row">
+      <select id="assignee"></select>
+      <input type="date" class="date" id="dueDate">
+      <div class="prio" id="prio">
+        <button data-p="0" class="sel">· Normal</button>
+        <button data-p="1">! High</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab sel" data-t="all">All</button>
+    <button class="tab" data-t="active">To do</button>
+    <button class="tab" data-t="done">Done</button>
+  </div>
+
+  <div class="card" style="padding:6px 16px;">
+    <ul id="list"></ul>
+    <div class="empty" id="empty" style="display:none;">Nothing here — enjoy the calm ✨</div>
+  </div>
+
+  <div class="footer">
+    <span id="count"></span>
+    <button id="clearDone">Clear completed</button>
+  </div>
+</div>
+
+<div id="toast">Link copied — send it to your family! 💌</div>
+
+<script>
+const COLORS = ["#ff6b5e","#4f7cff","#34b37e","#b06bff","#f5a623","#12b5cb"];
+const DEF_MEMBERS = [
+  {name:"Mum"},{name:"Dad"},{name:"Kids"}
+];
+
+let state = { members: DEF_MEMBERS.map(m=>({name:m.name})), tasks: [] };
+let filter="all", selMember=null, prio=0;
+
+// ---- load from URL (shared link) or localStorage ----
+function load(){
+  if(location.hash.length > 2){
+    try{
+      const json = decodeURIComponent(escape(atob(location.hash.slice(1))));
+      const d = JSON.parse(json);
+      if(d.tasks && d.members){ state = d; save(true); }
+    }catch(e){}
+    history.replaceState(null,"",location.pathname);
+  } else {
+    try{ const s = localStorage.getItem("ourlist"); if(s) state = JSON.parse(s); }catch(e){}
+  }
+}
+function save(skipLS){
+  if(!skipLS) localStorage.setItem("ourlist", JSON.stringify(state));
+}
+const col = i => COLORS[i % COLORS.length];
+const esc = s => s.replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&quot;","'":"&#39;"}[c]));
+
+// ---- render ----
+function render(){
+  // member chips
+  const mEl = document.getElementById("members");
+  mEl.innerHTML = `<div class="chip ${selMember===null?"active":""}" data-m="-1" style="--c:#22262b"><span class="avatar" style="--c:#22262b">✦</span>Everyone</div>` +
+    state.members.map((m,i)=>`<div class="chip ${selMember===i?"active":""}" data-m="${i}" style="--c:${col(i)}"><span class="avatar" style="--c:${col(i)}">${esc(m.name[0].toUpperCase())}</span>${esc(m.name)}</div>`).join("");
+  mEl.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{ selMember = +c.dataset.m === -1 ? null : +c.dataset.m; render(); });
+
+  // assignee select
+  document.getElementById("assignee").innerHTML =
+    state.members.map((m,i)=>`<option value="${i}">👤 ${esc(m.name)}</option>`).join("");
+
+  // tasks
+  let tasks = state.tasks;
+  if(selMember!==null) tasks = tasks.filter(t=>t.who===selMember);
+  if(filter==="active") tasks = tasks.filter(t=>!t.done);
+  if(filter==="done") tasks = tasks.filter(t=>t.done);
+  tasks = [...tasks].sort((a,b)=> (a.done-b.done) || (b.prio-a.prio) || (a.due||"9999")<(b.due||"9999") ? -1:1);
+
+  const ul = document.getElementById("list");
+  ul.innerHTML = tasks.map(t=>{
+    const i = state.tasks.indexOf(t);
+    const over = !t.done && t.due && t.due < new Date().toISOString().slice(0,10);
+    return `<li class="${t.done?"done":""}">
+      <button class="check" data-i="${i}">${t.done?"✓":""}</button>
+      ${t.prio?'<span class="dot" style="background:var(--accent)"></span>':""}
+      <span class="txt">${esc(t.text)}</span>
+      ${t.due?`<span class="due ${over?"over":""}">${over?"overdue · ":""}${t.due.slice(5).replace("-","/")}</span>`:""}
+      <span class="badge" style="--c:${col(t.who)}">${esc(state.members[t.who]?.name||"?")}</span>
+      <button class="del" data-i="${i}">✕</button>
+    </li>`;
+  }).join("");
+
+  document.getElementById("empty").style.display = tasks.length ? "none" : "block";
+  const left = state.tasks.filter(t=>!t.done).length;
+  document.getElementById("count").textContent = left ? `${left} task${left>1?"s":""} to do` : "All done! 🎉";
+
+  ul.querySelectorAll(".check").forEach(b=>b.onclick=()=>{ const t=state.tasks[+b.dataset.i]; t.done=!t.done; save(); render(); });
+  ul.querySelectorAll(".del").forEach(b=>b.onclick=()=>{ state.tasks.splice(+b.dataset.i,1); save(); render(); });
+}
+
+// ---- events ----
+document.getElementById("addBtn").onclick = add;
+document.getElementById("taskInput").addEventListener("keydown", e=>{ if(e.key==="Enter") add(); });
+function add(){
+  const inp = document.getElementById("taskInput");
+  const text = inp.value.trim();
+  if(!text) return;
+  state.tasks.push({ text, who:+document.getElementById("assignee").value,
+    due:document.getElementById("dueDate").value || null, prio, done:false });
+  inp.value=""; document.getElementById("dueDate").value="";
+  save(); render();
+}
+document.querySelectorAll(".prio button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".prio button").forEach(x=>x.classList.remove("sel"));
+  b.classList.add("sel"); prio = +b.dataset.p;
+});
+document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
+  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("sel"));
+  t.classList.add("sel"); filter = t.dataset.t; render();
+});
+document.getElementById("clearDone").onclick=()=>{ state.tasks = state.tasks.filter(t=>!t.done); save(); render(); };
+
+// ---- share: encode whole list into the URL ----
+document.getElementById("shareBtn").onclick = async ()=>{
+  const json = JSON.stringify(state);
+  const hash = btoa(unescape(encodeURIComponent(json)));
+  const url = location.origin === "null" || location.protocol === "file:"
+    ? null : location.href.split("#")[0] + "#" + hash;
+  if(url){
+    try{ await navigator.clipboard.writeText(url); toast(); }
+    catch(e){ prompt("Copy this link and send it to your family:", url); }
+  } else {
+    prompt("Copy this link and send it to your family:", "https://your-page-url#" + hash);
+  }
+};
+function toast(){
+  const t = document.getElementById("toast");
+  t.classList.add("show"); setTimeout(()=>t.classList.remove("show"), 2600);
+}
+
+// ---- manage members: long-press logo to edit names ----
+document.querySelector(".logo").addEventListener("dblclick", ()=>{
+  const names = prompt("Family members (comma separated):", state.members.map(m=>m.name).join(", "));
+  if(names){
+    const old = state.members;
+    state.members = names.split(",").map(s=>s.trim()).filter(Boolean);
+    state.tasks = state.tasks.filter(t=>t.who < state.members.length);
+    save(); render();
+  }
+});
+
+load(); render();
+</script>
+</body>
+</html>
